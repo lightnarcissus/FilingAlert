@@ -91,11 +91,97 @@ news_source_dict = {
                 ]
             }
         }
-
-    }
+    },
+    "pomerantz":{
+        "name": "Pomerantz LLP",
+        "source":{
+            "globe_wire": { 
+                "url" : 'https://www.globenewswire.com/search/keyword/Pomerantz%252520LLP?pageSize=50',
+                "tag": 'a',
+                "tag_query": {'data-autid': "article-url"},
+                "split_ops":[
+                {
+                    "title_split": "Investors of ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": "Investment in ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " of Class Action Lawsuit",
+                    "substr_index": 0
+                },
+                ]
+            }
+        }
+    },
+    "robbins":{
+        "name": "Robbins Geller Rudman & Dowd LLP",
+        "source":{
+            "globe_wire": { 
+                "url" : 'https://www.globenewswire.com/search/keyword/Robbins%252520Geller%252520Rudman%252520&%252520Dowd%252520LLP?pageSize=50',
+                "tag": 'a',
+                "tag_query": {'data-autid': "article-url"},
+                "split_ops":[
+                {
+                    "title_split": "Against ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " and Announces",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Announces ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": "INVESTOR DEADLINE NEXT WEEK: ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " Investors with Substantial",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Investigation into ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": "Announces that ",
+                    "substr_index": -1
+                },
+                ]
+            },
+            "pharmiweb":{
+                "url": 'https://www.pharmiweb.com/search/?query=Robbins+Geller+Rudman+%26+Dowd+LLP&type=4',
+                "tag": 'a',
+                "tag_query": {'href': re.compile('/press-release/*')},
+                "split_ops": [   
+                {
+                    "title_split": "Against ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " and Announces",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": " Investors with Substantial",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Announces that ",
+                    "substr_index": -1
+                },
+                ]
+            }
+        }
+    },
 }
 class FilingScraper():
-    _BANNED_WORDS = ["", "Press Releases", "\n", "INVESTOR ALERT"]
+    _BANNED_WORDS = ["Press Releases", "\r\n", "\t", "Investors", "Reminds", "INVESTOR ALERT"]
     def __init__(self, source: Dict) -> None:
         self.source_dict = source
         self.unique_targets = []
@@ -109,7 +195,7 @@ class FilingScraper():
 
 
     def is_unique(self, target) -> bool:
-        if len(target)< 1 or target.strip() in self._BANNED_WORDS:
+        if len(target)< 1 or any(ele.encode('utf-8') in target.encode('utf-8', 'ignore') for ele in self._BANNED_WORDS):
             return False
         for item in self.unique_targets:
             if SequenceMatcher(None, target, item).ratio() > 0.8:
