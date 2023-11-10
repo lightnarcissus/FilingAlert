@@ -2,7 +2,7 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from typing import Dict, List
-from difflib import SequenceMatcher
+from cdifflib import CSequenceMatcher
 
 # source dict object
 news_source_dict = {
@@ -152,6 +152,14 @@ news_source_dict = {
                     "title_split": "Announces that ",
                     "substr_index": -1
                 },
+                {
+                    "title_split": " and Encourages",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "that ",
+                    "substr_index": -1
+                },
                 ]
             },
             "pharmiweb":{
@@ -179,9 +187,94 @@ news_source_dict = {
             }
         }
     },
+    "faruqi":{
+        "name": "Faruqi & Faruqi LLP",
+        "source":{
+            "globe_wire": { 
+                "url" : 'https://www.globenewswire.com/search/keyword/Faruqi%252520&%252520Faruqi%252520LLP?pageSize=50',
+                "tag": 'a',
+                "tag_query": {'data-autid': "article-url"},
+                "split_ops":[
+                {
+                    "title_split": "Who Suffered Losses In ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " To Contact Him",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Otherwise Acquired ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " Securities Persuant",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": " Securities Pursuant and/or",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": " DEADLINE ALERT:",
+                    "substr_index": 0
+
+                }
+                ]
+            },
+            "pharmiweb":{
+                "url": 'https://www.pharmiweb.com/search/?query=Faruqi+%26+Faruqi+LLP&type=4',
+                "tag": 'a',
+                "tag_query": {'href': re.compile('/press-release/*')},
+                "split_ops": [   
+                {
+                    "title_split": "Against ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": " and Announces",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": " Investors with Substantial",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Announces that ",
+                    "substr_index": -1
+                },
+                ]
+            }
+        }
+    },
+    "levi":{
+        "name": "Levi & Korinsky LLP",
+        "source":{
+            "globe_wire": { 
+                "url" : 'https://www.globenewswire.com/search/keyword/Levi%252520&%252520Korsinsky%CE%B4%252520LLP?pageSize=50',
+                "tag": 'a',
+                "tag_query": {'data-autid': "article-url"},
+                "split_ops":[
+                {
+                    "title_split": "Investors of a",
+                    "substr_index": 0
+                },
+                {
+                    "title_split": "Notifies ",
+                    "substr_index": -1
+                },
+                {
+                    "title_split": "by Officers of ",
+                    "substr_index": -1
+                },
+                ]
+            }
+        }
+    },
 }
 class FilingScraper():
-    _BANNED_WORDS = ["Press Releases", "\r\n", "\t", "Investors", "Reminds", "INVESTOR ALERT"]
+    # _BANNED_WORDS = []
+    _BANNED_WORDS = ["Press Releases", "\r\n", "\t", "Reminds", "Certified By", "INVESTOR ALERT"]
     def __init__(self, source: Dict) -> None:
         self.source_dict = source
         self.unique_targets = []
@@ -198,7 +291,7 @@ class FilingScraper():
         if len(target)< 1 or any(ele.encode('utf-8') in target.encode('utf-8', 'ignore') for ele in self._BANNED_WORDS):
             return False
         for item in self.unique_targets:
-            if SequenceMatcher(None, target, item).ratio() > 0.8:
+            if CSequenceMatcher(None, target, item).ratio() > 0.8:
                 return False
         return True
 
