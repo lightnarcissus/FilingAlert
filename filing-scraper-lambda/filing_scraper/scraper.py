@@ -1,11 +1,13 @@
 import logging
-import re
-from typing import Dict, List, ClassVar
-import requests
 import os
+import re
+from typing import Any, ClassVar, Dict, List
+
+import requests
 from bs4 import BeautifulSoup
-from s3_manager import S3Manager
-from cdifflib import CSequenceMatcher
+from difflib  import SequenceMatcher
+from filing_scraper.s3_manager import S3Manager
+from filing_scraper.sns_publisher import SNSPublisher
 
 logging.basicConfig(level=logging.INFO)
 # source dict object
@@ -155,25 +157,33 @@ news_source_dict = {
 
 class FilingScraper:
     _MATCH_THRESHOLD = 0.8
-    _BANNED_WORDS: ClassVar = ["Press Releases", "\r\n", "\t", "Reminds", "Certified By", "INVESTOR ALERT"]
+    _BANNED_WORDS: ClassVar = ["Press Releases", "\n", "\r\n", "\t", "Reminds", "Certified By", "INVESTOR ALERT"]
 
-    def __init__(self, key: str, source: Dict) -> None:
+    def __init__(self, key: str, name:str, source: Dict) -> None:
         self.key = key
+        self.name = name
         self.source_dict = source
         self.s3_manager = S3Manager()
-        self.unique_targets = self.populate_active_entries(self.s3_manager.get_current_file(f"{self.key}.txt"))
-        logging.debug(f"ACTIVE UNIQUE TARGETS {self.unique_targets}")
+        self.sns_publisher = SNSPublisher()
+        curr_file = self.s3_manager.get_current_file(f"{self.key}.txt")
+        self.unique_targets = self.populate_active_entries(curr_file)
+        logging.info(f"ACTIVE UNIQUE TARGETS {self.unique_targets}")
+    
+    @property
+    def email_header(self) -> str:
+        return f"{self.name} New Filings"
+
     def exec_scraper(self):
         for source in self.source_dict.keys():
             logging.info(f"##### SEARCHING {source.upper()} ##### ")
             self.return_unique_targets_for_source(self.source_dict[source])
             pass
-    
+
     def populate_active_entries(self, file_path: str) -> List[str]:
         if not os.path.exists(file_path):
             raise FileNotFoundError("Could not find downloaded file")
         result = []
-        with open(file_path, "r") as entry_file:
+        with open(file_path) as entry_file:
             for line in entry_file.readlines():
                 result.append(line)
         return result
@@ -184,7 +194,7 @@ class FilingScraper:
         ):
             return False
         for item in self.unique_targets:
-            if CSequenceMatcher(None, target, item).ratio() > self._MATCH_THRESHOLD:
+            if SequenceMatcher(None, target, item).ratio() > self._MATCH_THRESHOLD:
                 return False
         return True
 
@@ -203,18 +213,33 @@ class FilingScraper:
         # Initialize the object with the document
         soup = BeautifulSoup(res.content, "html.parser")
         target_tags = soup.findAll(source_dict["tag"], source_dict["tag_query"])
-
+        new_targets = []
         for tag in target_tags:
             company = self.exec_split_ops(source_dict["split_ops"], tag.text)
             if self.is_unique(company):
                 logging.info(company)
+                new_targets.append(company.strip())
                 self.unique_targets.append(company)
-        self.s3_manager.update_file(self.unique_targets,f"{self.key}.txt")
+        if len(new_targets) > 0:
+            self.sns_publisher.publish_email(subject=self.email_header,
+                                             message=",\n".join(new_targets))
+        self.s3_manager.update_file(self.unique_targets, f"{self.key}.txt")
 
 
-if __name__ == "__main__":
+def main(event, context) -> dict[str, Any]:
+    logging.info("Running Scraping Event")
     for key in news_source_dict.keys():
         company_dict = news_source_dict[key]
         logging.info(f"{company_dict['name']}")
-        scraper = FilingScraper(key, company_dict["source"])
+        scraper = FilingScraper(key, company_dict['name'], company_dict["source"])
         scraper.exec_scraper()
+    response = {"success": True}
+    return response
+
+# if __name__ == "__main__":
+#     logging.info("Running Scraping Event")
+#     for key in news_source_dict.keys():
+#         company_dict = news_source_dict[key]
+#         logging.info(f"{company_dict['name']}")
+#         scraper = FilingScraper(key, company_dict['name'], company_dict["source"])
+#         scraper.exec_scraper()

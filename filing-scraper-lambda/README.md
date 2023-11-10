@@ -16,11 +16,12 @@
 pip install hatch
 ```
 ```console
-hatch shell
+hatch build
 ```
 Set environment variable `S3_BUCKET_NAME` to your S3 bucket.
 ```console
-python ./src/filing_scraper/scraper.py
+pip install -v .
+pip install -t ./dist/lambda .
 ```
 ## License
 
