@@ -1,6 +1,10 @@
-# Welcome to your CDK TypeScript project
+# Filing Scraper CDK Project
 
-This is a blank project for CDK development with TypeScript.
+Builds up following AWS resources:
+- Lambda
+- S3 Bucket
+- SNS Email Topic
+- EventBridge CRON Trigger to Lambda (Daily)
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 

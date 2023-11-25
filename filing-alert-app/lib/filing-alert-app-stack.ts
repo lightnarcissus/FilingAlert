@@ -35,7 +35,7 @@ export class FilingAlertAppStack extends cdk.Stack {
         S3_BUCKET_NAME: bucket.bucketName,
         SNS_ARN: filingTopic.topicArn,
       },
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(90),
     })
     // Event trigger to invoke lambda
     triggerRule.addTarget(new targets.LambdaFunction(lambdaFunctionHandler))

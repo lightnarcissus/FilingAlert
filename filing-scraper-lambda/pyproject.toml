@@ -42,6 +42,7 @@ path = "filing_scraper/__about__.py"
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
+  "botocore"
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
