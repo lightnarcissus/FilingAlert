@@ -8,6 +8,11 @@ Builds up following AWS resources:
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
+Requires you to specify `environmentName` as a context variable in CDK to define your stack's resources.
+```bash
+cdk synth -c environmentName=<YOUR ENV NAME>
+```
+
 ## Useful commands
 
 * `npm run build`   compile typescript to js

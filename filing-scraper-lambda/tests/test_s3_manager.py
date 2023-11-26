@@ -17,5 +17,5 @@ class S3ManagerTest(unittest.TestCase):
         mock_s3_client.return_value = "mock_key"
         inst = S3Manager()
         result = inst.get_current_file("mock_key")
-        assert result is "mock_key"
+        assert "mock_key" in result
         assert isinstance(result, str)

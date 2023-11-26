@@ -7,6 +7,8 @@ class SNSPublisherTest(unittest.TestCase):
         inst = SNSPublisher()
         assert inst is not None
         assert isinstance(inst, SNSPublisher)
+        assert inst.client is not None
+        
     
     @mock.patch('filing_scraper.sns_publisher.SNSPublisher.publish_email')
     def test_sns_publisher_publish(self, mock_sns_client):

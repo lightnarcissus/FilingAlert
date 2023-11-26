@@ -7,152 +7,10 @@ import requests
 from bs4 import BeautifulSoup
 from difflib  import SequenceMatcher
 from filing_scraper.s3_manager import S3Manager
+from filing_scraper.query import generate_mock_query_list, QueryFirm
 from filing_scraper.sns_publisher import SNSPublisher
 
 logger = logging.getLogger()
-# source dict object
-news_source_dict = {
-    "glancy": {
-        "name": "Glancy Prongay & Murray LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/en/search/organization/Glancy%2520Prongay%2520&%2520Murray%2520LLP?page=1&pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [{"title_split": "Against ", "substr_index": -1}],
-            },
-            "pharmiweb": {
-                "url": "https://www.pharmiweb.com/search/?query=Glancy+Prongay+%26+Murray+LLP&type=4",
-                "tag": "a",
-                "tag_query": {"href": re.compile("/press-release/*")},
-                "split_ops": [
-                    {"title_split": "Announces Investigation of ", "substr_index": -1},
-                    {"title_split": "on Behalf of Investors", "substr_index": 0},
-                    {"title_split": "Continues Investigation of ", "substr_index": -1},
-                ],
-            },
-        },
-    },
-    "kirby": {
-        "name": "Kirby McInerney LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/search/keyword/Kirby%252520McInerney%252520LLP?pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [
-                    {"title_split": "on Behalf of ", "substr_index": -1},
-                    {"title_split": " Investors", "substr_index": 0},
-                    {"title_split": "Investors in ", "substr_index": 0},
-                    {"title_split": "Against ", "substr_index": -1},
-                ],
-            },
-            "pharmiweb": {
-                "url": "https://www.pharmiweb.com/search/?query=Kirby+McInerney+LLP&type=4",
-                "tag": "a",
-                "tag_query": {"href": re.compile("/press-release/*")},
-                "split_ops": [
-                    {"title_split": "Announces Investigation of ", "substr_index": -1},
-                    {"title_split": "on Behalf of ", "substr_index": -1},
-                    {"title_split": "Continues Investigation of ", "substr_index": -1},
-                    {"title_split": " Investors ", "substr_index": 0},
-                    {"title_split": "Against ", "substr_index": -1},
-                ],
-            },
-        },
-    },
-    "pomerantz": {
-        "name": "Pomerantz LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/search/keyword/Pomerantz%252520LLP?pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [
-                    {"title_split": "Investors of ", "substr_index": -1},
-                    {"title_split": "Investment in ", "substr_index": -1},
-                    {"title_split": " of Class Action Lawsuit", "substr_index": 0},
-                ],
-            }
-        },
-    },
-    "robbins": {
-        "name": "Robbins Geller Rudman & Dowd LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/search/keyword/Robbins%252520Geller%252520Rudman%252520&%252520Dowd%252520LLP?pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [
-                    {"title_split": "Against ", "substr_index": -1},
-                    {"title_split": " and Announces", "substr_index": 0},
-                    {"title_split": "Announces ", "substr_index": -1},
-                    {"title_split": "INVESTOR DEADLINE NEXT WEEK: ", "substr_index": -1},
-                    {"title_split": " Investors with Substantial", "substr_index": 0},
-                    {"title_split": "Investigation into ", "substr_index": -1},
-                    {"title_split": "Announces that ", "substr_index": -1},
-                    {"title_split": " and Encourages", "substr_index": 0},
-                    {"title_split": "that ", "substr_index": -1},
-                ],
-            },
-            "pharmiweb": {
-                "url": "https://www.pharmiweb.com/search/?query=Robbins+Geller+Rudman+%26+Dowd+LLP&type=4",
-                "tag": "a",
-                "tag_query": {"href": re.compile("/press-release/*")},
-                "split_ops": [
-                    {"title_split": "Against ", "substr_index": -1},
-                    {"title_split": " and Announces", "substr_index": 0},
-                    {"title_split": " Investors with Substantial", "substr_index": 0},
-                    {"title_split": "Announces that ", "substr_index": -1},
-                ],
-            },
-        },
-    },
-    "faruqi": {
-        "name": "Faruqi & Faruqi LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/search/keyword/Faruqi%252520&%252520Faruqi%252520LLP?pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [
-                    {"title_split": "Who Suffered Losses In ", "substr_index": -1},
-                    {"title_split": " To Contact Him", "substr_index": 0},
-                    {"title_split": "Otherwise Acquired ", "substr_index": -1},
-                    {"title_split": " Securities Persuant", "substr_index": 0},
-                    {"title_split": " Securities Pursuant and/or", "substr_index": 0},
-                    {"title_split": " DEADLINE ALERT:", "substr_index": 0},
-                ],
-            },
-            "pharmiweb": {
-                "url": "https://www.pharmiweb.com/search/?query=Faruqi+%26+Faruqi+LLP&type=4",
-                "tag": "a",
-                "tag_query": {"href": re.compile("/press-release/*")},
-                "split_ops": [
-                    {"title_split": "Against ", "substr_index": -1},
-                    {"title_split": " and Announces", "substr_index": 0},
-                    {"title_split": " Investors with Substantial", "substr_index": 0},
-                    {"title_split": "Announces that ", "substr_index": -1},
-                ],
-            },
-        },
-    },
-    "levi": {
-        "name": "Levi & Korinsky LLP",
-        "source": {
-            "globe_wire": {
-                "url": "https://www.globenewswire.com/search/keyword/Levi%252520&%252520Korsinsky%CE%B4%252520LLP?pageSize=50",
-                "tag": "a",
-                "tag_query": {"data-autid": "article-url"},
-                "split_ops": [
-                    {"title_split": "Investors of a", "substr_index": 0},
-                    {"title_split": "Notifies ", "substr_index": -1},
-                    {"title_split": "by Officers of ", "substr_index": -1},
-                ],
-            }
-        },
-    },
-}
 
 
 class FilingScraper:
@@ -228,10 +86,12 @@ class FilingScraper:
 
 
 def main(event, context) -> dict[str, Any]:
-    for key in news_source_dict.keys():
-        company_dict = news_source_dict[key]
-        print(f"{company_dict['name']}")
-        scraper = FilingScraper(key, company_dict['name'], company_dict["source"])
+    # replace with your own QueryFirm instances
+    target_queries = generate_mock_query_list()
+    for query in target_queries:
+        firm_query = query.return_query()
+        print(f"{firm_query.name}")
+        scraper = FilingScraper(query, company_dict['name'], company_dict["source"])
         scraper.prep_data()
         scraper.exec_scraper()
     response = {"success": True}

@@ -11,10 +11,10 @@ import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 export class FilingAlertAppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
+    const environmentName = this.node.tryGetContext('environmentName');
     // Create S3 bucket to store artifacts
     const bucket = new s3.Bucket(this, 'FileStoreBucket', {
-      bucketName: `filing-storage-ansh`
+      bucketName: `filing-storage-${environmentName}`
     })
 
     // Create daily trigger
