@@ -91,7 +91,7 @@ def main(event, context) -> dict[str, Any]:
     for query in target_queries:
         firm_query = query.return_query()
         print(f"{firm_query.name}")
-        scraper = FilingScraper(query, company_dict['name'], company_dict["source"])
+        scraper = FilingScraper(query, firm_query.name, firm_query.source)
         scraper.prep_data()
         scraper.exec_scraper()
     response = {"success": True}
